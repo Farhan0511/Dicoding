@@ -1,8 +1,5 @@
 import './style/style.css';
-import $ from 'jquery';
 import { request } from './service';
-
-var notesData = [];
 
 async function insert(data) {
     try {
@@ -27,27 +24,58 @@ async function insert(data) {
     }
 }
 
-
-async function updateNoteById(id, newData) {
-    let response = await request(`https://notes-api.dicoding.dev/v2/notes/${id}`, {
-        method: 'PUT',
-        mode: 'cors',
+async function archiveNote(id) {
+    let response = await request(`https://notes-api.dicoding.dev/v2/notes/${id}/archive`, {
+        method: "POST",
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(newData)
-    });
-    console.log(response)
+    })
 
     if (response.status == 'success') {
-        console.log(`Catatan dengan ID ${id} berhasil diperbarui`);
-        return true; // Berhasil memperbarui catatan
+        console.log(`Catatan dengan ID ${id} berhasil diarsip`);
+        return true; // Berhasil mengarsip catatan
     } else {
-        console.error(`Gagal memperbarui catatan dengan ID ${id}`);
-        return false; // Gagal memperbarui catatan
+        console.error(`Gagal mengarsip catatan dengan ID ${id}`);
+        return false; // Gagal mengarsip catatan
     }
+}
 
+async function activeNote(id) {
+    let response = await request(`https://notes-api.dicoding.dev/v2/notes/${id}/unarchive`, {
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+
+    if (response.status == 'success') {
+        console.log(`Catatan dengan ID ${id} berhasil diaktifkan`);
+        return true; // Berhasil mengaktifkan catatan
+    } else {
+        console.error(`Gagal mengaktifkan catatan dengan ID ${id}`);
+        return false; // Gagal mengaktifkan catatan
+    }
+}
+
+async function getArchiveNote() {
+    let response = await request(`https://notes-api.dicoding.dev/v2/notes/archived`)
+
+    if (response.status == 'success') {
+        return response.data;
+    } else {
+        return null;
+    }
+}
+
+async function getActiveNote() {
+    let response = await request(`https://notes-api.dicoding.dev/v2/notes`)
     
+    if (response.status == 'success') {
+        return response.data;
+    } else {
+        return null;
+    }
 }
 
 async function deleteNoteById(id) {
@@ -78,7 +106,6 @@ class AppBar extends HTMLElement {
       
       <div style="display:flex; justify-content: space-between; margin: 17px;">
         <h2 style="color: #333;">Note Apps</h2>
-        <h2><a href="#" style="text-decoration: none; color: #333;">Archived</a></h2>
       </div>
 
       </header>
@@ -103,9 +130,7 @@ class inputNote extends HTMLElement {
           <textarea id="body"></textarea>  
         </div>
   
-        <button type="submit">Tambahkan Note</button>  
-        <button style="background: green;">Archive</button>
-         
+        <button type="submit">Tambahkan Note</button>           
       </form>
       `
     };
@@ -153,38 +178,63 @@ function addNote(title, body) {
     else {
         insert({
             title: title,
-            body: body,
+            body: body
         })
     }
 }
 
 // Fungsi untuk menampilkan catatan
 async function displayNotes() {
-    let response = await request("https://notes-api.dicoding.dev/v2/notes").then(res => { return res })
-    notesData = response.data
+    const noteArchive = document.getElementById('noteArchive');
+    const noteActive = document.getElementById('noteActive');
+    noteArchive.innerHTML = "";
+    noteActive.innerHTML = "";
+    const responseArchive = await getArchiveNote();
+    const responseActive = await getActiveNote();
 
-    const container = document.getElementById('noteContainer');
-    container.innerHTML = '';
-    notesData.forEach(note => {
-        const noteElement = document.createElement('div');
-        noteElement.classList.add('note');
-        noteElement.id = note.id;
+    const noteActiveHead = document.createElement('h1');
+    noteActiveHead.textContent = "Aktif";
+    const noteArchiveHead = document.createElement('h1');
+    noteArchiveHead.textContent = "Arsip";
 
-        // tambahkan HTML
-        noteElement.innerHTML = `
-        <div>
-            <h1>${note.title}</h1>
-            <br>
-            <p>${note.body}</p>
-            
-            <button type="submit" id="btn1" style="background: red; color: #fff;">Hapus</button>
-            <h4>Archive</h4>
-
-        </div>
-        `
-        container.appendChild(noteElement);
-
-    });
+    noteActive.append(noteActiveHead);
+    noteArchive.append(noteArchiveHead);
+    if (responseArchive != null) {
+        responseArchive.map(function (data) {
+            const noteElement = document.createElement('div');
+            noteElement.classList.add('note');
+            noteElement.id = data.id;
+            // tambahkan HTML
+            noteElement.innerHTML = `
+                <h1>${data.title}</h1>
+                <br>
+                <p>${data.body}</p>
+                
+                <button type="submit" id="btn1-archive" style="background: red; color: #fff;">Hapus</button>
+                <button type="submit" id="btn2-archive" style="background: yellow; color: black;">Aktifkan</button>
+                <h4 id="status">Status Arsip</h4>
+            `    
+            noteArchive.append(noteElement)
+        })
+    }
+    if (responseActive != null) {
+        responseActive.map(function (data) {
+            const noteElement = document.createElement('div');
+            noteElement.classList.add('note');
+            noteElement.id = data.id;
+            // tambahkan HTML
+            noteElement.innerHTML = `
+                <h1>${data.title}</h1>
+                <br>
+                <p>${data.body}</p>
+                
+                <button type="submit" id="btn1-active" style="background: red; color: #fff;">Hapus</button>
+                <button type="submit" id="btn2-active" style="background: yellow; color: black;">Arsipkan</button>
+                <h4 id="status">Status Aktif</h4>
+            `
+            noteActive.append(noteElement)
+        })
+    }    
 }
 
 document.getElementById('title').addEventListener('input', function (event) {
@@ -201,8 +251,8 @@ document.getElementById('body').addEventListener('input', function (event) {
 
 // Memanggil fungsi untuk menampilkan catatan saat halaman dimuat
 
-document.addEventListener('DOMContentLoaded', function () {
-    displayNotes();
+document.addEventListener('DOMContentLoaded', async function () {
+    await displayNotes();
 });
 
 
@@ -211,7 +261,6 @@ document.getElementById('noteForm').addEventListener('submit', function (event) 
     event.preventDefault();
     const title = document.getElementById('title').value;
     const body = document.getElementById('body').value;
-    const btn = document.getElementById('btn1')
 
     Swal.fire({
         title: "Do you want to save the changes?",
@@ -219,13 +268,13 @@ document.getElementById('noteForm').addEventListener('submit', function (event) 
         showCancelButton: true,
         confirmButtonText: "Save",
         denyButtonText: `Don't save`
-    }).then((result) => {
+    }).then(async (result) => {
         /* Read more about isConfirmed, isDenied below */
         if (result.isConfirmed) {
             Swal.fire("Saved!", "", "success");
 
             addNote(title, body);
-            displayNotes();
+            await displayNotes();
             document.getElementById('title').value = '';
             document.getElementById('body').value = '';
 
@@ -235,64 +284,11 @@ document.getElementById('noteForm').addEventListener('submit', function (event) 
     });
 });
 
-// Menambahkan event listener untuk button Edit
-document.getElementById('noteContainer').addEventListener('click', async function (event) {
-    if (event.target.matches('#btn2')) {
-        const noteElement = event.target.closest('.note');
-        const noteId = noteElement.id;
 
-        // Dapatkan data catatan yang ingin diperbarui
-        const existingTitle = noteElement.querySelector('h1').textContent;
-        const existingBody = noteElement.querySelector('p').textContent;
-
-        // Tampilkan dialog untuk mengedit catatan
-        const { value: formValues } = await Swal.fire({
-            title: 'Edit Note',
-            html:
-                `<input id="swal-input1" class="swal2-input" value="${existingTitle}">` +
-                `<textarea id="swal-input2" class="swal2-textarea">${existingBody}</textarea>`,
-            focusConfirm: false,
-            preConfirm: () => {
-                return [
-                    document.getElementById('swal-input1').value,
-                    document.getElementById('swal-input2').value
-                ];
-            }
-        });
-
-        // Jika pengguna menekan tombol "OK", lakukan pembaruan catatan
-        if (formValues) {
-            const [newTitle, newBody] = formValues;
-            const success = await updateNoteById(noteId, { title: newTitle, body: newBody });
-            
-            if (success) {
-                // Perbarui catatan di DOM jika berhasil memperbarui dari server
-                noteElement.querySelector('h1').textContent = newTitle;
-                noteElement.querySelector('p').textContent = newBody;
-                Swal.fire(
-                    'Updated!',
-                    'Your note has been updated.',
-                    'success'
-                );
-            } else {
-                Swal.fire(
-                    'Failed!',
-                    'Failed to update the note. Please try again later.',
-                    'error'
-                );
-            }
-        }
-    }
-});
-
-
-
-// Menambahkan event listener untuk button Hapus
-document.getElementById('noteContainer').addEventListener('click', async function (event) {
-    if (event.target.matches('#btn1')) {
-        const noteElement = event.target.closest('.note');
-        const noteId = noteElement.id;
-
+document.getElementById('noteArchive').addEventListener("click", async function (event) {
+    const noteElement = event.target.closest('.note');
+    const noteId = noteElement.id;
+    if (event.target.matches('#btn1-archive')) {
         const confirmation = await Swal.fire({
             title: 'Are you sure?',
             text: 'You will not be able to recover this note!',
@@ -316,6 +312,99 @@ document.getElementById('noteContainer').addEventListener('click', async functio
                 Swal.fire(
                     'Failed!',
                     'Failed to delete the note. Please try again later.',
+                    'error'
+                );
+            }
+        }
+    } else if (event.target.matches('#btn2-archive')) {
+        const confirmation = await Swal.fire({
+            title: 'Are you sure?',
+            text: 'You will active this note',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, active it!'
+        });
+
+        if (confirmation.isConfirmed) {
+            
+            const response = await activeNote(noteId);
+            if (response) {
+                await displayNotes();
+                Swal.fire(
+                    'Actived!',
+                    'Your note has been actived.',
+                    'success'
+                );
+            } else {
+                Swal.fire(
+                    'Failed!',
+                    'Failed to active the note. Please try again later.',
+                    'error'
+                );
+            }
+        }
+    }
+})
+
+document.getElementById('noteActive').addEventListener('click', async function (event) {
+    const noteElement = event.target.closest('.note');
+    const noteId = noteElement.id;
+
+    if (event.target.matches('#btn1-active')) {
+        const confirmation = await Swal.fire({
+            title: 'Are you sure?',
+            text: 'You will not be able to recover this note!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        });
+
+        if (confirmation.isConfirmed) {
+            const success = await deleteNoteById(noteId);
+            if (success) {
+                noteElement.remove(); // Hapus catatan dari DOM jika berhasil dihapus dari server
+                Swal.fire(
+                    'Deleted!',
+                    'Your note has been deleted.',
+                    'success'
+                );
+            } else {
+                Swal.fire(
+                    'Failed!',
+                    'Failed to delete the note. Please try again later.',
+                    'error'
+                );
+            }
+        }
+    } else if (event.target.matches('#btn2-active')) {
+        const confirmation = await Swal.fire({
+            title: 'Are you sure?',
+            text: 'You will archive this note',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, archive it!'
+        });
+
+        if (confirmation.isConfirmed) {
+            
+            const response = await archiveNote(noteId);
+            if (response) {
+                await displayNotes();
+                Swal.fire(
+                    'Archived!',
+                    'Your note has been archived.',
+                    'success'
+                );
+            } else {
+                Swal.fire(
+                    'Failed!',
+                    'Failed to archive the note. Please try again later.',
                     'error'
                 );
             }
