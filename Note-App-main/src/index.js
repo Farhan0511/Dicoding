@@ -143,7 +143,7 @@ class footerElement extends HTMLElement {
 
         this.innerHTML = `
      
-        <h3 style="color: #333; text-align: center;">Copyright Farhan Ferdiansyah Belajar Fundamental Front End</h3>
+        <h3 style="color: #333; text-align: center;">Copyright Farhan Ferdiansyah</h3>
       `
     }
 }
@@ -189,9 +189,27 @@ async function displayNotes() {
     const noteActive = document.getElementById('noteActive');
     noteArchive.innerHTML = "";
     noteActive.innerHTML = "";
+
+    // Tampilkan loading sebelum fetching data
+    const loadingArchive = document.createElement('div');
+    loadingArchive.innerHTML = `
+    <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
+    `
+    noteArchive.appendChild(loadingArchive);
+
+    const loadingActive = document.createElement('div');
+    loadingActive.textContent = '';
+    noteActive.appendChild(loadingActive);
+
+    // Lakukan fetching data
     const responseArchive = await getArchiveNote();
     const responseActive = await getActiveNote();
 
+    // Sembunyikan loading setelah mendapatkan respons dari server
+    loadingArchive.style.display = "none";
+    loadingActive.style.display = "none";
+
+    // Lanjutkan dengan menampilkan data jika respons berhasil
     const noteActiveHead = document.createElement('h1');
     noteActiveHead.textContent = "Aktif";
     const noteArchiveHead = document.createElement('h1');
@@ -199,6 +217,7 @@ async function displayNotes() {
 
     noteActive.append(noteActiveHead);
     noteArchive.append(noteArchiveHead);
+
     if (responseArchive != null) {
         responseArchive.map(function (data) {
             const noteElement = document.createElement('div');
@@ -236,6 +255,8 @@ async function displayNotes() {
         })
     }    
 }
+
+
 
 document.getElementById('title').addEventListener('input', function (event) {
     if (event.target.value.length > 10) {

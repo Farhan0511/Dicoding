@@ -1,0 +1,19 @@
+{
+  "name": "web-dasar",
+  "version": "1.0.0",
+  "description": "Selamat datang di repositori Banten Hot! Ini adalah tempat di mana kami menyimpan berbagai informasi dan kode terkait dengan proyek Banten Hot, sebuah platform berita daring yang fokus pada berita terkini di Provinsi Banten, Indonesia.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start-dev": "http-server"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "jquery": "^3.7.1",
+    "moment": "^2.30.1"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
