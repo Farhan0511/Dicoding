@@ -25,4 +25,5 @@ const UrlParser = {
       + (splitedUrl.verb ? `/${splitedUrl.verb}` : '');
   },
 };
+
 export default UrlParser;
